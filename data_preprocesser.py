@@ -4,15 +4,10 @@ import os,sys
 import re
 
 def get_resource_path(relative_path):
-    """
-    獲取資源檔案的絕對路徑。
-    為了讓 PyInstaller 打包後能找到檔案，必須判斷是否在 'frozen' (打包) 狀態。
-    """
     if hasattr(sys, '_MEIPASS'):
         # PyInstaller 打包後的暫存路徑
         base_path = sys._MEIPASS
     else:
-        # 開發環境：使用目前檔案的所在目錄
         base_path = os.path.dirname(os.path.abspath(__file__))
     
     return os.path.join(base_path, relative_path)
@@ -178,15 +173,12 @@ def process_recipes(file_path):
 
     # 遍歷每一份食譜
     for recipe in data:
-        # 確保有 ID，如果沒有就跳過或自動生成 (這裡假設有)
         recipe_id = recipe['ID']
         
         # 取得原始食材字串
         raw_ingredients_str = recipe['食材']
         
-        # 分割食材：以頓號 "、" 分割，並去除前後空白
-        # ingredient_list = [item.strip() for item in raw_ingredients_str.split('、') if item.strip()]
-
+        # 分割食材：以頓號 "、" 分割
         ingredient_list=raw_ingredients_str.split('、')
 
 
@@ -195,10 +187,8 @@ def process_recipes(file_path):
         
         # --- 開始比對邏輯 ---
         for raw_item in ingredient_list:
-            # 針對每一個食材字串，去檢查所有標籤
             for tag, keywords in mapping_rules.items():
-                
-                # 1. 包含檢查 (Inclusion)
+
                 is_included = False
                 for kw in keywords:
                     if kw in raw_item:
@@ -206,9 +196,8 @@ def process_recipes(file_path):
                         break
                 
                 if not is_included:
-                    continue # 如果連關鍵字都沒有，就換下一個標籤
+                    continue 
                 
-                # 2. 排除檢查 (Exclusion)
                 should_exclude = False
                 if tag in exclusion_rules:
                     for ex_kw in exclusion_rules[tag]:
@@ -219,20 +208,16 @@ def process_recipes(file_path):
                 # 3. 判定結果
                 if not should_exclude:
                     matched_tags.add(tag)
-                    # DEBUG 用：如果想看它為什麼配對成功，可以把下面這行註解打開
-                    # print(f"  [配對成功] 食材:'{raw_item}' -> 標籤:'{tag}'")
+                    # print(f" 食材:'{raw_item}' -> 標籤:'{tag}'")
 
         # --- 儲存結果 ---
-        # 將找到的標籤轉回 list 存入食譜物件中
         recipe['yolo_tags'] = list(matched_tags)
         
-        # 將食譜 ID 加入反向索引
         for tag in matched_tags:
             inverted_index[tag].append(recipe_id)
 
     # --- 3. 輸出結果與測試 ---
     
-    # 顯示前 5 筆處理結果供檢查
     print("\n【前 5 筆食譜處理結果範例】：")
     for i, recipe in enumerate(data[:5]):
         print(f"ID: {recipe.get('id')} | 菜名: {recipe.get('name')}")
@@ -247,16 +232,14 @@ def process_recipes(file_path):
         if len(ids) > 0:
             print(f"  {tag}: {len(ids)} 筆食譜")
             count += 1
-            if count >= 10: # 只列出前10個有資料的標籤以免洗版
+            if count >= 10: # 只列出前10個有資料的標籤
                 print("  ... (更多標籤隱藏)")
                 break
 
-    # 寫入新的 JSON 檔案 (包含標籤)
     output_file = 'recipes_tagged.json'
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
     
-    # 寫入反向索引檔案 (搜尋用)
     index_file = 'inverted_index.json'
     with open(index_file, 'w', encoding='utf-8') as f:
         json.dump(inverted_index, f, ensure_ascii=False, indent=4)
