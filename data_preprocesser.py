@@ -12,16 +12,6 @@ def get_resource_path(relative_path):
     
     return os.path.join(base_path, relative_path)
 
-# 使用函式取得正確路徑
-# json_path = get_resource_path('recipes.json')
-
-# with open(json_path, 'r', encoding='utf-8') as f:
-#     data = json.load(f)
-#build 時：pyinstaller --onefile --add-data "recipes.json;." app.py
-
-# print(data[0])
-
-
 mapping_rules={
     'apple':['蘋果'],
     'asparagus':['蘆筍','青菜','蔬菜'],
@@ -175,17 +165,12 @@ def process_recipes(file_path):
     for recipe in data:
         recipe_id = recipe['ID']
         
-        # 取得原始食材字串
         raw_ingredients_str = recipe['食材']
         
-        # 分割食材：以頓號 "、" 分割
         ingredient_list=raw_ingredients_str.split('、')
 
-
-        # 用來存放這份食譜對應到的 YOLO 標籤 (使用 set 避免重複)
         matched_tags = set()
         
-        # --- 開始比對邏輯 ---
         for raw_item in ingredient_list:
             for tag, keywords in mapping_rules.items():
 
@@ -205,12 +190,10 @@ def process_recipes(file_path):
                             should_exclude = True
                             break
                 
-                # 3. 判定結果
                 if not should_exclude:
                     matched_tags.add(tag)
                     # print(f" 食材:'{raw_item}' -> 標籤:'{tag}'")
 
-        # --- 儲存結果 ---
         recipe['yolo_tags'] = list(matched_tags)
         
         for tag in matched_tags:
@@ -225,7 +208,6 @@ def process_recipes(file_path):
         print(f"  辨識標籤: {recipe.get('yolo_tags')}")
         print("-" * 30)
 
-    # 顯示反向索引統計
     print("\n【標籤統計 (部分)】：")
     count = 0
     for tag, ids in inverted_index.items():
@@ -247,7 +229,6 @@ def process_recipes(file_path):
     print(f"\nALL DONE！\n已生成 '{output_file}' (含標籤的食譜) \n已生成 '{index_file}' (反向搜尋索引)")
 
   
-# 執行主程式
 if __name__ == "__main__":
     process_recipes('recipes.json')
         
